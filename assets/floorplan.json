@@ -1,0 +1,38 @@
+{
+  "$schema": "https://evoko.app/schema/floorplan.schema.json",
+  "locationId": "hejhej",
+  "children": [
+    {
+      "type": "layer",
+      "id": "floorplan-layer"
+    },
+    {
+      "type": "layer",
+      "id": "floorplan-layer",
+      "children": [
+        {
+          "type": "rect",
+          "x": 10,
+          "y": 10,
+          "w": 200,
+          "h": 100,
+          "fill": "ff0000ff"
+        },
+        {
+          "type": "rect",
+          "x": 300,
+          "y": 10,
+          "w": 400,
+          "h": 100,
+          "fill": "ff00ff00"
+        },
+        {
+          "type": "desk",
+          "deskId": "123",
+          "x": 30,
+          "y": 30
+        }
+      ]
+    }
+  ]
+}
