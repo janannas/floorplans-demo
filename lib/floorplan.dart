@@ -109,6 +109,7 @@ class DeskElement implements BaseElement {
   final String deskId;
   final double x;
   final double y;
+  final double radius = 20.0;
 
   DeskElement({
     required this.deskId,
@@ -117,7 +118,8 @@ class DeskElement implements BaseElement {
   });
 
   @override
-  Rect getExtent() => Rect.fromLTWH(x, y, 0, 0);
+  Rect getExtent() =>
+      Rect.fromLTWH(x - radius, y - radius, radius * 2, radius * 2);
 
   factory DeskElement.fromJson(Map<String, dynamic> data) {
     return DeskElement(
@@ -161,7 +163,6 @@ class _FloorplanState extends State<Floorplan> {
 
   void load(String jsonString) {
     final data = json.decode(jsonString);
-
     root = RootElement.fromJson(data);
   }
 
@@ -169,12 +170,7 @@ class _FloorplanState extends State<Floorplan> {
   void initState() {
     debugPrint(widget.jsonFloorplan);
     load(widget.jsonFloorplan);
-
     controller = TransformationController();
-
-    controller.addListener(() {
-      print(controller.value);
-    });
     super.initState();
   }
 
@@ -191,14 +187,12 @@ class _FloorplanState extends State<Floorplan> {
   }
 
   Widget buildDeskElement(BuildContext context, DeskElement element) {
-    const radius = 10;
-
     return Positioned(
-      top: element.y - radius,
-      left: element.x - radius,
+      top: element.y - element.radius,
+      left: element.x - element.radius,
       child: Container(
-        height: radius * 2,
-        width: radius * 2,
+        height: element.radius * 2,
+        width: element.radius * 2,
         decoration: const BoxDecoration(
           color: Colors.orange,
           shape: BoxShape.circle,
@@ -228,46 +222,26 @@ class _FloorplanState extends State<Floorplan> {
     return SizedBox(
       height: size.bottom,
       width: size.right,
-      child: Container(
-        decoration: BoxDecoration(color: Colors.grey[500]),
-        child: Stack(
-          fit: StackFit.expand,
-          clipBehavior: Clip.none,
-          children: elements,
-        ),
+      child: Stack(
+        children: elements,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // final size = root.getExtent();
+    final size = root.getExtent();
 
-    // final layers = root.layers
-    //     .map<Widget>((layer) => buildLayer(context, layer, size))
-    //     .toList();
+    final layers = root.layers
+        .map<Widget>((layer) => buildLayer(context, layer, size))
+        .toList();
 
-    // final boundaryMargin = max(size.bottom, size.right);
-    final size = Rect.fromLTRB(0, 0, 700, 400);
-    // print(controller.value);
     return InteractiveViewer(
       transformationController: controller,
-      boundaryMargin: EdgeInsets.fromLTRB(0, 0, 0, 0),
-      constrained: false,
-      child: SizedBox(
-        height: 792,
-        width: 700,
-        child: Container(
-          height: 400,
-          width: 700,
-          decoration: BoxDecoration(
-            border: Border.all(
-              width: 2,
-              color: Colors.black,
-            ),
-            color: Colors.yellow,
-          ),
-        ),
+      maxScale: 200,
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: Stack(children: layers),
       ),
     );
   }
