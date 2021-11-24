@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
@@ -156,6 +157,7 @@ class Floorplan extends StatefulWidget {
 
 class _FloorplanState extends State<Floorplan> {
   late RootElement root;
+  late TransformationController controller;
 
   void load(String jsonString) {
     final data = json.decode(jsonString);
@@ -167,6 +169,12 @@ class _FloorplanState extends State<Floorplan> {
   void initState() {
     debugPrint(widget.jsonFloorplan);
     load(widget.jsonFloorplan);
+
+    controller = TransformationController();
+
+    controller.addListener(() {
+      print(controller.value);
+    });
     super.initState();
   }
 
@@ -233,26 +241,33 @@ class _FloorplanState extends State<Floorplan> {
 
   @override
   Widget build(BuildContext context) {
-    final size = root.getExtent();
+    // final size = root.getExtent();
 
-    final layers = root.layers
-        .map<Widget>((layer) => buildLayer(context, layer, size))
-        .toList();
+    // final layers = root.layers
+    //     .map<Widget>((layer) => buildLayer(context, layer, size))
+    //     .toList();
 
-    print(size);
+    // final boundaryMargin = max(size.bottom, size.right);
+    final size = Rect.fromLTRB(0, 0, 700, 400);
+    // print(controller.value);
     return InteractiveViewer(
-      // maxScale: 20,
-      boundaryMargin: EdgeInsets.fromLTRB(
-        size.left,
-        size.top,
-        size.right,
-        size.bottom,
-      ),
+      transformationController: controller,
+      boundaryMargin: EdgeInsets.fromLTRB(0, 0, 0, 0),
       constrained: false,
       child: SizedBox(
-        width: size.width,
-        height: size.height,
-        child: Stack(children: layers),
+        height: 792,
+        width: 700,
+        child: Container(
+          height: 400,
+          width: 700,
+          decoration: BoxDecoration(
+            border: Border.all(
+              width: 2,
+              color: Colors.black,
+            ),
+            color: Colors.yellow,
+          ),
+        ),
       ),
     );
   }
