@@ -9,10 +9,42 @@ Color? parseColor(String? color) {
   return color == null ? null : Color(int.parse(color, radix: 16));
 }
 
-class BaseElement {}
+abstract class BaseElement {
+  Rect getExtent();
+}
 
-class RootElement {
-  final List<LayerElement> _children;
+class ElementWithChildren<T extends BaseElement> implements BaseElement {
+  final List<T> _children;
+
+  ElementWithChildren({
+    List<T>? children,
+  }) : _children = children ?? [];
+
+  get children => _children;
+
+  @override
+  Rect getExtent() {
+    double left = 0, right = 0, top = 0, bottom = 0;
+    for (var child in _children) {
+      final extent = child.getExtent();
+      if (extent.left < left) {
+        left = extent.left;
+      }
+      if (extent.top < top) {
+        top = extent.top;
+      }
+      if (extent.right > right) {
+        right = extent.right;
+      }
+      if (extent.bottom > bottom) {
+        bottom = extent.bottom;
+      }
+    }
+    return Rect.fromLTRB(left, top, right, bottom);
+  }
+}
+
+class RootElement extends ElementWithChildren<LayerElement> {
   final String locationId;
 
   get layers => _children;
@@ -20,7 +52,7 @@ class RootElement {
   RootElement({
     List<LayerElement>? children,
     required this.locationId,
-  }) : _children = children ?? [];
+  }) : super(children: children);
 
   factory RootElement.fromJson(Map<String, dynamic> data) {
     final children = ((data['children'] ?? []) as List).map((child) {
@@ -40,7 +72,7 @@ class RootElement {
   }
 }
 
-class RectElement extends BaseElement {
+class RectElement implements BaseElement {
   final Color? fill;
   final Color? stroke;
   final double x;
@@ -57,6 +89,9 @@ class RectElement extends BaseElement {
     required this.height,
   });
 
+  @override
+  Rect getExtent() => Rect.fromLTWH(x, y, width, height);
+
   factory RectElement.fromJson(Map<String, dynamic> data) {
     return RectElement(
       fill: parseColor(data['fill']),
@@ -69,7 +104,7 @@ class RectElement extends BaseElement {
   }
 }
 
-class DeskElement extends BaseElement {
+class DeskElement implements BaseElement {
   final String deskId;
   final double x;
   final double y;
@@ -80,6 +115,9 @@ class DeskElement extends BaseElement {
     required this.y,
   });
 
+  @override
+  Rect getExtent() => Rect.fromLTWH(x, y, 0, 0);
+
   factory DeskElement.fromJson(Map<String, dynamic> data) {
     return DeskElement(
       deskId: data['deskId'],
@@ -89,12 +127,8 @@ class DeskElement extends BaseElement {
   }
 }
 
-class LayerElement extends BaseElement {
-  final List<BaseElement> _children;
-
-  LayerElement({List<BaseElement>? children}) : _children = children ?? [];
-
-  get children => _children;
+class LayerElement extends ElementWithChildren<BaseElement> {
+  LayerElement({List<BaseElement>? children}) : super(children: children);
 
   factory LayerElement.fromJson(Map<String, dynamic> data) {
     final children = ((data['children'] ?? []) as List).map((child) {
@@ -149,12 +183,14 @@ class _FloorplanState extends State<Floorplan> {
   }
 
   Widget buildDeskElement(BuildContext context, DeskElement element) {
+    const radius = 10;
+
     return Positioned(
-      top: element.y,
-      left: element.x,
+      top: element.y - radius,
+      left: element.x - radius,
       child: Container(
-        height: 20,
-        width: 20,
+        height: radius * 2,
+        width: radius * 2,
         decoration: const BoxDecoration(
           color: Colors.orange,
           shape: BoxShape.circle,
@@ -176,22 +212,48 @@ class _FloorplanState extends State<Floorplan> {
     }
   }
 
-  Widget buildLayer(BuildContext context, LayerElement layer) {
+  Widget buildLayer(BuildContext context, LayerElement layer, Rect size) {
     final elements = layer.children
         .map<Widget>((child) => buildElement(context, child))
         .toList();
 
-    return Stack(children: elements);
+    return SizedBox(
+      height: size.bottom,
+      width: size.right,
+      child: Container(
+        decoration: BoxDecoration(color: Colors.grey[500]),
+        child: Stack(
+          fit: StackFit.expand,
+          clipBehavior: Clip.none,
+          children: elements,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final layers =
-        root.layers.map<Widget>((layer) => buildLayer(context, layer)).toList();
+    final size = root.getExtent();
 
+    final layers = root.layers
+        .map<Widget>((layer) => buildLayer(context, layer, size))
+        .toList();
+
+    print(size);
     return InteractiveViewer(
-      maxScale: 20,
-      child: Stack(children: layers),
+      // maxScale: 20,
+      boundaryMargin: EdgeInsets.fromLTRB(
+        size.left,
+        size.top,
+        size.right,
+        size.bottom,
+      ),
+      constrained: false,
+      child: SizedBox(
+        width: size.width,
+        height: size.height,
+        child: Stack(children: layers),
+      ),
     );
   }
 }
